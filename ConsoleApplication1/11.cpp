@@ -157,7 +157,7 @@ int main() {
 	// Дескриптор DLL-библиотеки
 	HMODULE hDll;
 	// Указатель на функцию
-	int(*dllgauss) (CBandMatrix<DBL>, vector<DBL>, vector<DBL>, char *, int, int);
+	int(*dllgauss) (double*, double*, double*, double*, int, int);
 
 	// Загружаем динамически подключаемую библиотеку
 	hDll = LoadLibraryEx(_T("ImprovedSystem.dll"), 0, DONT_RESOLVE_DLL_REFERENCES);
@@ -167,7 +167,7 @@ int main() {
 		cout << _T("Динамическая библиотека не загружена") << endl;
 		return GetLastError();
 	}
-	dllgauss = (int(*)(CBandMatrix<DBL>, vector<DBL>, vector<DBL>, char *, int, int))GetProcAddress(hDll, "ImprovedGaussSystem");
+	dllgauss = (int(*)(double*, double*, double*, double*, int, int))GetProcAddress(hDll, "ImprovedGaussSystem");
 	if (!dllgauss)
 	{
 		cout << _T("Ошибка получения адреса функции") << endl;
@@ -177,7 +177,8 @@ int main() {
 	CSLAE test;
 	
 	int n=533;
-	char * tt1 = new char[n];
+	double* tt1 = new double [n];
+	double* tt2 = new double[n];
 	test.Init(n, n);
 
 	ifstream Kmat("Kbig.txt");
@@ -219,13 +220,13 @@ int main() {
 	Kmatr.close();
 	*/
 	//test.Gauss();
-	dllgauss(test.m_matr, test.m_rp, test.m_sol, tt1, n, n/2);
+	dllgauss(&test.m_matr[0], &test.m_rp[0], tt2, tt1, n, n/2);
 	ifstream Uv("Ubig.txt");
 	double k;
 	cout << "solve" << endl;
 	for (int i = 0; i < n; i++) {
 		Uv >> k;
-		cout << k << "\t" << test.m_sol[i] << endl;
+		cout << k << "\t" << test.m_rp[i] << endl;
 	}
 	Uv.close();
 	/*

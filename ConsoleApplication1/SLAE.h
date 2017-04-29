@@ -428,6 +428,7 @@ public:
 	// для правой части
 	void RotateRPLCS(size_t k, DBL alpha);
 	void Gauss();
+	void Gauss2();
 	//~CSLAE();
 };
 

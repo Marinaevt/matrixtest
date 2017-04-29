@@ -107,6 +107,51 @@ void CSLAE::Gauss(/*int nxy2, int isl, bool bZZ*/)
 		m_sol[r] = m_rp[r];
 	}
 }
+
+
+void CSLAE::Gauss2(/*int nxy2, int isl, bool bZZ*/)
+{
+	// nxy2 - кол-во уравнений
+	// isl - ширина ленты (половины)
+
+	size_t r, s, m, n, j, i, k;	// индексы
+	double zn, anul;
+
+	size_t nxy2 = m_matr.rows();
+	size_t isl = m_matr.band();	//половина, так половина
+	size_t Q = 2 * isl - 1;
+	CCustomArray<size_t, double> fullk((2 * isl - 1)*nxy2);
+
+	for (i = 0; i < nxy2; i++) {
+		fullk.cell2d(i, isl, Q) = m_matr.cell(i, i);
+		for (j = 1; j <= Q; j++) {
+			fullk.cell2d(i, Q + j, Q) = m_matr.cell(i, i + j);
+		}
+		if (i + isl < nxy2) {
+			for (j = 0; j <= isl - 1; j++) {
+				fullk.cell2d(i + isl - j, j, Q) = m_matr.cell(i, isl - j);
+			}
+		}
+		else {
+			for (j = 0; j < isl; j++) {
+				fullk.cell2d(i + j, isl - 1 - j, Q) = m_matr.cell(i, isl - j);
+			}
+		}
+	}
+	for (i = 0; i < Q; i++) {
+		for (j = 0; j < nxy2; j++) {
+			cout << fullk.cell2d(i, j, Q) << '\t';
+		}
+		cout << endl;
+	}
+
+}
+
+
+
+
+
+
 void CSLAE::RotateRPLCS(size_t k, DBL alpha)
 {
 	DBL sina = sin(alpha),
@@ -154,41 +199,42 @@ void CSLAE::RotateMatrixLCS(size_t k, DBL alpha) //k - номер узла
 }
 
 int main() {
+	/*
 	// Дескриптор DLL-библиотеки
 	HMODULE hDll;
 	// Указатель на функцию
-	int(*dllgauss) (double*, double*, double*, double*, int, int);
+	int(*dllgauss) (double*, double*, double*, char*, int, int);
 
 	// Загружаем динамически подключаемую библиотеку
 	hDll = LoadLibraryEx(_T("ImprovedSystem.dll"), 0, DONT_RESOLVE_DLL_REFERENCES);
 
 	if (!hDll)
 	{
-		cout << _T("Динамическая библиотека не загружена") << endl;
+		cout << ("library fucked up") << endl;
 		return GetLastError();
 	}
-	dllgauss = (int(*)(double*, double*, double*, double*, int, int))GetProcAddress(hDll, "ImprovedGaussSystem");
+	dllgauss = (int(*)(double*, double*, double*, char*, int, int))GetProcAddress(hDll, "ImprovedGaussSystem");
 	if (!dllgauss)
 	{
-		cout << _T("Ошибка получения адреса функции") << endl;
+		cout << ("Function adress fucked up") << endl;
 		return GetLastError();
 	}
-
+	*/
 	CSLAE test;
 	
-	int n=533;
+	int n=6;
 	double* tt1 = new double [n];
-	double* tt2 = new double[n];
+	char* tt2 = new char[n];
 	test.Init(n, n);
 
-	ifstream Kmat("Kbig.txt");
+	ifstream Kmat("K.txt");
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
 			Kmat >> test.m_matr.cell(i, j);
 		}
 	}
 	Kmat.close();
-	ifstream Fv("Fbig.txt");
+	ifstream Fv("F.txt");
 	for (int i = 0; i < n; i++) {
 		Fv >> test.m_rp[i];
 	}
@@ -219,9 +265,13 @@ int main() {
 	}
 	Kmatr.close();
 	*/
-	//test.Gauss();
-	dllgauss(&test.m_matr[0], &test.m_rp[0], tt2, tt1, n, n/2);
-	ifstream Uv("Ubig.txt");
+	test.Gauss2();
+	//dllgauss(&test.m_matr[0], &test.m_rp[0], tt1, tt2, n, n);
+
+
+
+	/*
+	ifstream Uv("U.txt");
 	double k;
 	cout << "solve" << endl;
 	for (int i = 0; i < n; i++) {
@@ -229,6 +279,10 @@ int main() {
 		cout << k << "\t" << test.m_rp[i] << endl;
 	}
 	Uv.close();
+	*/
+
+
+
 	/*
 	test.RotateRPLCS(4,-45 * MPI / 180);
 
@@ -241,10 +295,11 @@ int main() {
 	Urotv.close();
 	*/
 	// Отключаем библиотеку
+	/*
 	if (!FreeLibrary(hDll))
 	{
-		cout << _T("Ошибка выгрузки библиотеки из памяти") << endl;
+		cout << ("Memory freeing fucked up") << endl;
 		return GetLastError();
 	}
-
+	*/
 }

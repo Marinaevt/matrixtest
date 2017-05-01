@@ -114,37 +114,96 @@ void CSLAE::Gauss2(/*int nxy2, int isl, bool bZZ*/)
 	// nxy2 - кол-во уравнений
 	// isl - ширина ленты (половины)
 
-	size_t r, s, m, n, j, i, k;	// индексы
+	size_t r = 0, s, m, n, j, i, k, flag = 0, type = 0;	// индексы
 	double zn, anul;
 
-	size_t nxy2 = m_matr.rows();
+	int nxy2 = m_matr.rows();
 	size_t isl = m_matr.band();	//половина, так половина
 	size_t Q = 2 * isl - 1;
-	CCustomArray<size_t, double> fullk((2 * isl - 1)*nxy2);
-
-	for (i = 0; i < nxy2; i++) {
-		fullk.cell2d(i, isl, Q) = m_matr.cell(i, i);
-		for (j = 1; j <= Q; j++) {
-			fullk.cell2d(i, Q + j, Q) = m_matr.cell(i, i + j);
-		}
-		if (i + isl < nxy2) {
-			for (j = 0; j <= isl - 1; j++) {
-				fullk.cell2d(i + isl - j, j, Q) = m_matr.cell(i, isl - j);
-			}
-		}
-		else {
+	//vector <double> fullk((2 * isl - 1)*nxy2, 55);
+	vector <double> fullK(4 * isl + 4 * (isl + 2) + (nxy2 - 8)*(isl + 4), 0);
+	if (nxy2 == isl) {
+		for (i = 0; i < isl; i++) {
 			for (j = 0; j < isl; j++) {
-				fullk.cell2d(i + j, isl - 1 - j, Q) = m_matr.cell(i, isl - j);
+				fullK[i*(isl-1) + j] = m_matr.cell(i, j);
 			}
 		}
 	}
-	for (i = 0; i < Q; i++) {
-		for (j = 0; j < nxy2; j++) {
-			cout << fullk.cell2d(i, j, Q) << '\t';
+	else {
+		type = 1;
+		for (i = 0; i < nxy2; i++) {
+			for (j = 0; j < isl + 4; j++) {
+				if (i < 2 && j > isl - 1 || i < 4 && j > isl + 1 || i > nxy2 - 5 && j < 2 || i > nxy2 - 3 && j < 4) {
+					fullK[i*(isl + 3) + j] = 0;
+				}
+				else {
+					if (i < isl) {
+						fullK[i*(isl + 3) + j] = m_matr.cell(i, j);
+					}
+					else {
+						if (!flag) {
+							r += 2;
+							flag = !flag;
+						}
+						fullK[i*(isl + 3) + j] = m_matr.cell(i, j + r);
+					}
+				}
+			}
+		}
+	}
+	type = type ? isl + 4 : isl;
+	/*
+	for (i = 0; i < type; i++) {
+		for (j = 0; j < type; j++) {
+			cout << fullK[i*(type-1) + j] << '\t';
 		}
 		cout << endl;
 	}
-
+	cout << "------------------------------" << endl;
+	*/
+	for (i = 0; i < nxy2; i++) {
+		double ttt = i*type + (i ? i : 0);
+		double diag = fullK[i*(type-1) + i];
+		for (j = 0; j < type; j++) {
+			fullK[i*(type - 1) + j] /= diag;
+		}
+		m_rp[i] /= diag;
+		if (i + isl <= nxy2) {
+			for (j = 1; j < isl; j++) {
+				double el = fullK[(i + j)*(type - 1) + i];
+				for (k = 0; k < type; k++) {
+					fullK[(i + j)*(type - 1) + k] -= fullK[i*(type - 1) + k] * el;
+				}
+				m_rp[i + j] -= m_rp[i] * el;
+			}
+		}
+		else {
+			for (j = i+1; j < nxy2; j++) {
+				double el = fullK[j*(type - 1) + i];
+				for (k = 0; k < type; k++) {
+					fullK[j*(type - 1) + k] -= fullK[i*(type - 1) + k] * el;
+				}
+				m_rp[j] -= m_rp[i] * el;
+			}
+		}
+		/*
+		for (k = 0; k < type; k++) {
+			for (j = 0; j < type; j++) {
+				cout << fullK[k*(type - 1) + j] << '\t';
+			}
+			cout << m_rp[k] << endl;
+		}
+		cout << "----------------------------------------" << endl;
+		*/
+	}
+	m_sol[nxy2 - 1] = m_rp[nxy2 - 1];
+	for (int p = nxy2 - 1; p >= 0; p--) {
+		double temp = 0;
+		for (j = p + 1; j < type; j++) {
+			temp += fullK[p*(type - 1) + j] * m_sol[j];
+		}
+		m_sol[p] = (m_rp[p] - temp); // fullK[p*type + p];
+	}
 }
 
 
@@ -266,20 +325,21 @@ int main() {
 	Kmatr.close();
 	*/
 	test.Gauss2();
+	//test.Gauss();
 	//dllgauss(&test.m_matr[0], &test.m_rp[0], tt1, tt2, n, n);
 
 
 
-	/*
+	
 	ifstream Uv("U.txt");
 	double k;
 	cout << "solve" << endl;
 	for (int i = 0; i < n; i++) {
 		Uv >> k;
-		cout << k << "\t" << test.m_rp[i] << endl;
+		cout << k << "\t" << test.m_sol[i] << endl;
 	}
 	Uv.close();
-	*/
+	
 
 
 
